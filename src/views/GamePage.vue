@@ -75,7 +75,7 @@ export default {
         if (isUserTurn.value) {
           drawCards(userCards);
         } else {
-          drawCards(enemyCards);
+          drawCards(enemyCards, 3);
           enemyAction();
         }
       },
@@ -170,6 +170,13 @@ export default {
       const drawTypeCards = enemyCards.filter((card) => {
         return card.type === "draw";
       });
+
+      if (drawTypeCards.length > 0) {
+        useAllCards(drawTypeCards);
+        setTimeout(enemyAction, 50);
+        return;
+      }
+
       const dropCards = enemyCards.filter((card) => {
         return card.type === "drop";
       });
@@ -180,7 +187,7 @@ export default {
 
       if (enemyHealth.value < 80 && healCards.length !== 0) {
         for (const card of healCards) {
-          if (enemyHealth.value !== 100) {
+          if (enemyHealth.value < 90) {
             selectCard(card.id);
           }
         }
@@ -196,14 +203,9 @@ export default {
         }
       }
 
-      useAllCards(drawTypeCards);
       useAllCards(atkCards);
 
-      if (atkCards.length > 0 || drawTypeCards.length > 0) {
-        setTimeout(enemyAction, 50);
-      } else {
-        setTimeout(handleTurnEnd, 50);
-      }
+      setTimeout(handleTurnEnd, 50);
     };
 
     return {
