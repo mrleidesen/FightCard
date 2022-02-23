@@ -11,6 +11,7 @@ const defaultCards = [
       max: 10,
     },
     max: 20,
+    desc: "攻击敌方",
   },
   {
     type: "atk",
@@ -20,24 +21,27 @@ const defaultCards = [
       max: 10,
     },
     max: 20,
+    desc: "攻击敌方",
   },
   {
     type: "atk",
     name: "十字斩",
     value: {
       min: 10,
-      max: 20,
+      max: 15,
     },
     max: 10,
+    desc: "攻击敌方",
   },
   {
     type: "atk",
     name: "山崩地裂",
     value: {
-      min: 20,
-      max: 30,
+      min: 15,
+      max: 25,
     },
     max: 6,
+    desc: "攻击敌方",
   },
   {
     type: "heal",
@@ -47,6 +51,7 @@ const defaultCards = [
       max: 15,
     },
     max: 16,
+    desc: "治疗自己",
   },
   {
     type: "heal",
@@ -56,6 +61,7 @@ const defaultCards = [
       max: 25,
     },
     max: 10,
+    desc: "治疗自己",
   },
   {
     type: "draw",
@@ -65,6 +71,7 @@ const defaultCards = [
       max: 3,
     },
     max: 10,
+    desc: "抽牌",
   },
   {
     type: "drop",
@@ -74,6 +81,7 @@ const defaultCards = [
       max: 3,
     },
     max: 20,
+    desc: "丢弃对方的手牌",
   },
 ];
 
@@ -86,6 +94,7 @@ function generateCards() {
         id: cards.length + 1,
         type: card.type,
         name: card.name,
+        desc: card.desc,
         value: getRandomNumber(card.value.min, card.value.max),
       });
     }

@@ -1,6 +1,6 @@
 import { isNumber } from "./number";
 
-export const maxHealth = 100;
+export const maxHealth = 200;
 
 export function damageByEnemy(state, amount) {
   if (!isNumber(amount)) {

@@ -19,6 +19,7 @@
             :value="card.value"
             :name="card.name"
             :type="card.type"
+            :title="card.desc"
             @click="selectCard(card.id)"
           />
         </div>
@@ -41,7 +42,7 @@ import UserStatus from "@/components/UserStatus.vue";
 import UiButton from "@/components/UiButton.vue";
 
 import { userHealth, username } from "@/store/user";
-import { enemyHealth, enemyname } from "@/store/enemy";
+import { enemyEffect, enemyHealth, enemyname } from "@/store/enemy";
 import {
   cards,
   userCards,
@@ -204,7 +205,7 @@ export default {
       }
 
       useAllCards(atkCards);
-
+      enemyEffect();
       setTimeout(handleTurnEnd, 50);
     };
 

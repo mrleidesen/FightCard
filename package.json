@@ -1,6 +1,6 @@
 {
-  "name": "vue3-tailwind-template",
-  "version": "0.0.0",
+  "name": "fightcard",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
