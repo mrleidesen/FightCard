@@ -57,6 +57,24 @@ const defaultCards = [
     },
     max: 10,
   },
+  {
+    type: "draw",
+    name: "贪婪",
+    value: {
+      min: 1,
+      max: 3,
+    },
+    max: 10,
+  },
+  {
+    type: "drop",
+    name: "强迫",
+    value: {
+      min: 1,
+      max: 3,
+    },
+    max: 20,
+  },
 ];
 
 function generateCards() {
@@ -82,8 +100,8 @@ export const userCards = reactive([]);
 
 export const enemyCards = reactive([]);
 
-export function sendCard(state, count = 2) {
-  for (let i = 1; i <= count; i++) {
+export function drawCards(state, count = 2) {
+  for (let i = 0; i < count; i++) {
     if (cards.length !== 0) {
       state.push(...cards.splice(getRandomNumber(0, cards.length - 1), 1));
     }

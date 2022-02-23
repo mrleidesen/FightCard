@@ -14,6 +14,7 @@ import UiButton from "@/components/UiButton.vue";
 import { enemyHealth, enemyname } from "@/store/enemy";
 import { resetCards } from "@/store/cards";
 import { userHealth } from "@/store/user";
+import { logs } from "@/store/log";
 import { maxHealth } from "@/utils";
 
 export default {
@@ -42,6 +43,7 @@ export default {
 
       userHealth.value = maxHealth;
       enemyHealth.value = maxHealth;
+      logs.splice(0, logs.length);
 
       router.push("/game");
     };

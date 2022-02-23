@@ -9,6 +9,7 @@
         <game-logs />
       </div>
       <div class="p-2">
+        <span class="mr-5">对方手牌：{{ enemyCards.length }}</span>
         <span class="mr-5">剩余卡牌：{{ cards.length }}</span>
         <ui-button @click="handleTurnEnd">回合结束</ui-button>
       </div>
@@ -31,7 +32,7 @@
 </template>
 
 <script>
-import { computed, ref, watchEffect } from "vue";
+import { computed, ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 
 import GameCard from "@/components/GameCard.vue";
@@ -45,7 +46,7 @@ import {
   cards,
   userCards,
   enemyCards,
-  sendCard,
+  drawCards,
   onUseCard,
 } from "@/store/cards";
 import { addLog } from "@/store/log";
@@ -68,14 +69,20 @@ export default {
     );
     const isUserTurn = computed(() => turn.value % 2 === 0);
 
-    watchEffect(() => {
-      if (isUserTurn.value) {
-        sendCard(userCards);
-      } else {
-        sendCard(enemyCards);
-        enemyAction();
+    watch(
+      isUserTurn,
+      () => {
+        if (isUserTurn.value) {
+          drawCards(userCards);
+        } else {
+          drawCards(enemyCards);
+          enemyAction();
+        }
+      },
+      {
+        immediate: true,
       }
-    });
+    );
 
     watchEffect(() => {
       if (end.value) {
@@ -92,7 +99,31 @@ export default {
         return;
       }
 
+      autoDropCards(userCards);
+      autoDropCards(enemyCards);
+
       turn.value += 1;
+    };
+
+    const autoDropCards = (cards, maxCards = 4) => {
+      const maxLength = cards.length;
+
+      if (maxLength <= maxCards) {
+        return;
+      }
+
+      for (let i = 0; i < maxLength - maxCards; i++) {
+        const index = getRandomNumber(0, maxLength - 1);
+        cards.splice(index, 1);
+      }
+    };
+
+    const dropCards = (cards, count = 1) => {
+      if (cards.length === 0) {
+        return;
+      }
+
+      cards.splice(0, count);
     };
 
     const selectCard = (id) => {
@@ -112,32 +143,67 @@ export default {
       if (card.type === "heal") {
         healSelf(isUserTurn.value ? userHealth : enemyHealth, card.value);
       }
+      if (card.type === "draw") {
+        drawCards(
+          isUserTurn.value ? userCards : enemyCards,
+          card.value,
+          Date.now()
+        );
+      }
+      if (card.type === "drop") {
+        dropCards(isUserTurn.value ? enemyCards : userCards, card.value);
+      }
 
       onUseCard(isUserTurn.value ? userCards : enemyCards, id);
       addLog(from, to, card.type, card.name, card.value);
     };
 
+    const useAllCards = (cards) => {
+      if (cards.length !== 0) {
+        for (const card of cards) {
+          selectCard(card.id);
+        }
+      }
+    };
+
     const enemyAction = () => {
+      const drawTypeCards = enemyCards.filter((card) => {
+        return card.type === "draw";
+      });
+      const dropCards = enemyCards.filter((card) => {
+        return card.type === "drop";
+      });
       const healCards = enemyCards.filter((card) => {
         return card.type === "heal";
       });
       const atkCards = enemyCards.filter((card) => card.type === "atk");
 
       if (enemyHealth.value < 80 && healCards.length !== 0) {
-        const index = getRandomNumber(0, healCards.length - 1);
-
-        selectCard(healCards[index].id);
-      }
-
-      if (atkCards.length !== 0) {
-        for (const card of atkCards) {
-          selectCard(card.id);
+        for (const card of healCards) {
+          if (enemyHealth.value !== 100) {
+            selectCard(card.id);
+          }
         }
       }
 
-      setTimeout(() => {
-        handleTurnEnd();
-      }, 0);
+      if (dropCards.length !== 0) {
+        for (const card of dropCards) {
+          if (userCards.length === 0) {
+            break;
+          } else {
+            selectCard(card.id);
+          }
+        }
+      }
+
+      useAllCards(drawTypeCards);
+      useAllCards(atkCards);
+
+      if (atkCards.length > 0 || drawTypeCards.length > 0) {
+        setTimeout(enemyAction, 50);
+      } else {
+        setTimeout(handleTurnEnd, 50);
+      }
     };
 
     return {
