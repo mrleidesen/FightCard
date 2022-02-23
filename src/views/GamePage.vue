@@ -51,7 +51,7 @@ import {
   onUseCard,
 } from "@/store/cards";
 import { addLog } from "@/store/log";
-import { damageByEnemy, healSelf } from "@/utils";
+import { damageByEnemy, healSelf, maxHealth } from "@/utils";
 import { getRandomNumber } from "@/utils/number";
 
 export default {
@@ -76,7 +76,7 @@ export default {
         if (isUserTurn.value) {
           drawCards(userCards);
         } else {
-          drawCards(enemyCards, 3);
+          drawCards(enemyCards);
           enemyAction();
         }
       },
@@ -186,9 +186,9 @@ export default {
       });
       const atkCards = enemyCards.filter((card) => card.type === "atk");
 
-      if (enemyHealth.value < 80 && healCards.length !== 0) {
+      if (enemyHealth.value < maxHealth * 0.8 && healCards.length !== 0) {
         for (const card of healCards) {
-          if (enemyHealth.value < 90) {
+          if (enemyHealth.value < maxHealth * 0.9) {
             selectCard(card.id);
           }
         }

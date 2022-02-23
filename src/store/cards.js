@@ -109,7 +109,7 @@ export const userCards = reactive([]);
 
 export const enemyCards = reactive([]);
 
-export function drawCards(state, count = 2) {
+export function drawCards(state, count = 3) {
   for (let i = 0; i < count; i++) {
     if (cards.length !== 0) {
       state.push(...cards.splice(getRandomNumber(0, cards.length - 1), 1));
