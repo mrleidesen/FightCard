@@ -1,18 +1,29 @@
 <template>
-  <div class="h-full p-5 flex items-center justify-center">
+  <div class="h-full p-5 flex flex-col items-center justify-center gap-6">
     <h1 class="font-semibold text-3xl text-center">{{ resultText }}</h1>
+    <ui-button @click="handleRestart">重新玩儿</ui-button>
   </div>
 </template>
 
 <script>
 import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
-import { enemyname } from "@/store/enemy";
+import UiButton from "@/components/UiButton.vue";
+
+import { enemyHealth, enemyname } from "@/store/enemy";
+import { resetCards } from "@/store/cards";
+import { userHealth } from "@/store/user";
+import { maxHealth } from "@/utils";
 
 export default {
+  components: {
+    UiButton,
+  },
+
   setup() {
     const route = useRoute();
+    const router = useRouter();
     const result = route.query.result;
 
     const resultText = computed(() => {
@@ -26,8 +37,18 @@ export default {
       return "结果未出";
     });
 
+    const handleRestart = () => {
+      resetCards();
+
+      userHealth.value = maxHealth;
+      enemyHealth.value = maxHealth;
+
+      router.push("/game");
+    };
+
     return {
       resultText,
+      handleRestart,
     };
   },
 };

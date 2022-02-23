@@ -22,7 +22,7 @@ export default {
       () => [...logs],
       () => {
         setTimeout(() => {
-          el.value.scrollTo(0, el.value.scrollHeight);
+          el?.value?.scrollTo(0, el?.value?.scrollHeight);
         }, 0);
       }
     );

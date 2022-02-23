@@ -99,3 +99,11 @@ export function onUseCard(state, id) {
 
   state.splice(index, 1);
 }
+
+export function resetCards() {
+  cards.splice(0, cards.length);
+  userCards.splice(0, userCards.length);
+  enemyCards.splice(0, enemyCards.length);
+
+  cards.push(...generateCards());
+}

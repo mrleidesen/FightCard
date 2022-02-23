@@ -12,13 +12,13 @@
         <span class="mr-5">剩余卡牌：{{ cards.length }}</span>
         <ui-button @click="handleTurnEnd">回合结束</ui-button>
       </div>
-      <div class="flex-1 items-end flex">
+      <div class="flex-1 items-end flex overflow-x-auto">
         <div v-for="card in userCards" :key="card.id" class="first:ml-0 -ml-16">
           <game-card
             :value="card.value"
             :name="card.name"
             :type="card.type"
-            @click="handleUseCard(card.id)"
+            @click="selectCard(card.id)"
           />
         </div>
       </div>
@@ -73,28 +73,7 @@ export default {
         sendCard(userCards);
       } else {
         sendCard(enemyCards);
-        const healCards = enemyCards.filter((card) => {
-          return card.type === "heal";
-        });
-        const atkCards = enemyCards.filter((card) => card.type === "atk");
-
-        if (enemyHealth.value < 80) {
-          if (healCards.length !== 0) {
-            const index = getRandomNumber(0, healCards.length - 1);
-
-            handleUseCard(healCards[index].id);
-          }
-        }
-
-        if (atkCards.length !== 0) {
-          const index = getRandomNumber(0, atkCards.length - 1);
-
-          handleUseCard(atkCards[index].id);
-        }
-
-        setTimeout(() => {
-          handleTurnEnd();
-        }, 0);
+        enemyAction();
       }
     });
 
@@ -116,7 +95,7 @@ export default {
       turn.value += 1;
     };
 
-    const handleUseCard = (id) => {
+    const selectCard = (id) => {
       if (end.value) {
         return;
       }
@@ -127,24 +106,38 @@ export default {
 
       const card = _cards.find((card) => card.id === id);
 
-      if (isUserTurn.value) {
-        if (card.type === "atk") {
-          damageByEnemy(enemyHealth, card.value);
-        }
-        if (card.type === "heal") {
-          healSelf(userHealth, card.value);
-        }
-      } else {
-        if (card.type === "atk") {
-          damageByEnemy(userHealth, card.value);
-        }
-        if (card.type === "heal") {
-          healSelf(enemyHealth, card.value);
-        }
+      if (card.type === "atk") {
+        damageByEnemy(isUserTurn.value ? enemyHealth : userHealth, card.value);
+      }
+      if (card.type === "heal") {
+        healSelf(isUserTurn.value ? userHealth : enemyHealth, card.value);
       }
 
       onUseCard(isUserTurn.value ? userCards : enemyCards, id);
       addLog(from, to, card.type, card.name, card.value);
+    };
+
+    const enemyAction = () => {
+      const healCards = enemyCards.filter((card) => {
+        return card.type === "heal";
+      });
+      const atkCards = enemyCards.filter((card) => card.type === "atk");
+
+      if (enemyHealth.value < 80 && healCards.length !== 0) {
+        const index = getRandomNumber(0, healCards.length - 1);
+
+        selectCard(healCards[index].id);
+      }
+
+      if (atkCards.length !== 0) {
+        for (const card of atkCards) {
+          selectCard(card.id);
+        }
+      }
+
+      setTimeout(() => {
+        handleTurnEnd();
+      }, 0);
     };
 
     return {
@@ -156,7 +149,7 @@ export default {
       userCards,
       enemyCards,
       handleTurnEnd,
-      handleUseCard,
+      selectCard,
       turn,
       isUserTurn,
     };
