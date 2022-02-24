@@ -1,6 +1,10 @@
 <template>
   <div class="w-full flex flex-col">
-    <span>{{ name }} （{{ value }}/{{ maxHealth }}）</span>
+    <span>
+      {{ status.name }} （{{ status.hp }}/{{ status.maxHP }}）（{{
+        status.mp
+      }}/{{ status.maxMP }}）
+    </span>
     <div class="border border-white w-full h-2 bg-gray-700">
       <div
         class="h-full"
@@ -8,27 +12,36 @@
         :style="`width: ${healPercent}%;`"
       />
     </div>
+    <div
+      v-show="status.maxMP > 0"
+      class="border border-white w-full h-2 bg-gray-700"
+    >
+      <div class="h-full bg-blue-500" :style="`width: ${mpPercent}%;`" />
+    </div>
   </div>
 </template>
 
 <script>
 import { computed } from "vue";
-import { maxHealth } from "@/utils";
 
 export default {
   props: {
-    value: {
-      type: Number,
-      default: 100,
-    },
-    name: {
-      type: String,
-      default: "",
+    status: {
+      type: Object,
+      default: () => ({
+        name: "",
+        maxHP: 100,
+        hp: 100,
+        maxMP: 0,
+        mp: 0,
+      }),
     },
   },
 
   setup(props) {
-    const healPercent = computed(() => (props.value / maxHealth) * 100);
+    const healPercent = computed(
+      () => (props.status.hp / props.status.maxHP) * 100
+    );
     const statusColor = computed(() => {
       if (healPercent.value <= 50 && healPercent.value > 20) {
         return "bg-orange-500";
@@ -40,11 +53,14 @@ export default {
 
       return "bg-green-500";
     });
+    const mpPercent = computed(
+      () => (props.status.mp / props.status.maxMP) * 100
+    );
 
     return {
-      maxHealth,
       healPercent,
       statusColor,
+      mpPercent,
     };
   },
 };
