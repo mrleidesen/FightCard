@@ -11,11 +11,9 @@ import { useRoute, useRouter } from "vue-router";
 
 import UiButton from "@/components/UiButton.vue";
 
-import { enemyHealth, enemyname } from "@/store/enemy";
-import { resetCards } from "@/store/cards";
-import { userHealth } from "@/store/user";
-import { logs } from "@/store/log";
-import { maxHealth } from "@/utils";
+import { player } from "@/store/player";
+import { monster } from "@/store/monster";
+import { clearLogs } from "@/store/log";
 
 export default {
   components: {
@@ -29,21 +27,22 @@ export default {
 
     const resultText = computed(() => {
       if (result === "lose") {
-        return `你被${enemyname}打败了`;
+        return `你被${monster.name}打败了`;
       }
       if (result === "win") {
-        return `你击败了${enemyname}`;
+        return `你击败了${monster.name}`;
       }
 
       return "结果未出";
     });
 
     const handleRestart = () => {
-      resetCards();
+      player.hp = player.maxHP;
+      player.mp = player.maxMP;
+      monster.hp = monster.maxHP;
+      monster.mp = monster.maxMP;
 
-      userHealth.value = maxHealth;
-      enemyHealth.value = maxHealth;
-      logs.splice(0, logs.length);
+      clearLogs();
 
       router.push("/game");
     };

@@ -1,226 +1,149 @@
 <template>
   <div class="w-full h-full p-4 flex flex-col gap-4">
     <div class="flex-shrink-0">
-      <user-status :value="enemyHealth" :name="enemyname" />
+      <user-status :status="monster" />
     </div>
 
     <div class="flex-1 w-full border border-white rounded p-2 flex flex-col">
       <div class="h-48">
         <game-logs />
       </div>
-      <div class="p-2">
-        <span class="mr-5">对方手牌：{{ enemyCards.length }}</span>
-        <span class="mr-5">剩余卡牌：{{ cards.length }}</span>
-        <ui-button @click="handleTurnEnd">回合结束</ui-button>
-      </div>
       <div class="flex-1 items-end flex overflow-x-auto">
-        <div v-for="card in userCards" :key="card.id" class="first:ml-0 -ml-16">
+        <div
+          v-for="skill in playerSkills"
+          :key="skill.name"
+          class="first:ml-0 -ml-16 relative"
+        >
           <game-card
-            :value="card.value"
-            :name="card.name"
-            :type="card.type"
-            :title="card.desc"
-            @click="selectCard(card.id)"
+            :skill="skill"
+            :atk-disabled="atkDisabled"
+            :skill-disabled="skillDisabled"
+            :disabled="player.mp < skill.cost"
+            @click="handleUseSkill(skill.name)"
           />
         </div>
       </div>
     </div>
 
     <div class="flex-shrink-0">
-      <user-status :value="userHealth" :name="username" />
+      <user-status :status="player" />
     </div>
   </div>
 </template>
 
 <script>
-import { computed, ref, watch, watchEffect } from "vue";
+import { computed, onMounted, ref, watch, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import shuffle from "lodash/shuffle";
 
 import GameCard from "@/components/GameCard.vue";
 import GameLogs from "@/components/GameLogs.vue";
 import UserStatus from "@/components/UserStatus.vue";
-import UiButton from "@/components/UiButton.vue";
 
-import { userHealth, username } from "@/store/user";
-import { enemyEffect, enemyHealth, enemyname } from "@/store/enemy";
-import {
-  cards,
-  userCards,
-  enemyCards,
-  drawCards,
-  onUseCard,
-} from "@/store/cards";
-import { addLog } from "@/store/log";
-import { damageByEnemy, healSelf, maxHealth } from "@/utils";
-import { getRandomNumber } from "@/utils/number";
+import { player, defaultSkills as playerSkills } from "@/store/player";
+import { monster, defaultSkills as monsterSkills } from "@/store/monster";
+import { doAction } from "@/store";
 
 export default {
   components: {
     GameCard,
     GameLogs,
     UserStatus,
-    UiButton,
   },
 
   setup() {
     const router = useRouter();
-    const turn = ref(0);
-    const end = computed(
-      () => userHealth.value === 0 || enemyHealth.value === 0
-    );
-    const isUserTurn = computed(() => turn.value % 2 === 0);
+    const skillDisabled = ref(false);
+    const atkDisabled = ref(false);
+    const playerTimeout = 2000;
+    const monsterTimeout = 4000;
+    let timer = null;
 
-    watch(
-      isUserTurn,
-      () => {
-        if (isUserTurn.value) {
-          drawCards(userCards);
-        } else {
-          drawCards(enemyCards);
-          enemyAction();
-        }
-      },
-      {
-        immediate: true,
-      }
-    );
+    const gameEnd = computed(() => {
+      return monster.hp === 0 || player.hp === 0;
+    });
 
-    watchEffect(() => {
-      if (end.value) {
-        if (userHealth.value === 0) {
-          router.push("/end?result=lose");
-        } else {
-          router.push("/end?result=win");
-        }
+    watch(gameEnd, () => {
+      if (gameEnd.value) {
+        clearAutoAttackTimer();
+        router.push(`/end?result=${monster.hp === 0 ? "win" : "lose"}`);
       }
     });
 
-    const handleTurnEnd = () => {
-      if (end.value) {
+    onMounted(() => {
+      setAutoAttackTimer();
+    });
+
+    onUnmounted(() => {
+      clearAutoAttackTimer();
+    });
+
+    function autoAttack() {
+      const hpPercent = (monster.hp / monster.maxHP) * 100;
+      const attack = shuffle(
+        monsterSkills.filter((skill) => skill.type !== "heal")
+      );
+
+      if (hpPercent < 90) {
+        doAction(monster, player, shuffle(monsterSkills).pop());
+      } else {
+        doAction(monster, player, attack.pop());
+      }
+    }
+
+    function setAutoAttackTimer() {
+      if (timer) {
+        clearAutoAttackTimer();
+      }
+
+      timer = setInterval(() => {
+        autoAttack();
+      }, monsterTimeout);
+    }
+
+    function clearAutoAttackTimer() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    function handleUseSkill(name) {
+      const skill = playerSkills.find((skill) => skill.name === name);
+
+      if (skill.type === "atk" && atkDisabled.value) {
+        return;
+      }
+      if (skill.type !== "atk" && skillDisabled.value) {
         return;
       }
 
-      autoDropCards(userCards);
-      autoDropCards(enemyCards);
-
-      turn.value += 1;
-    };
-
-    const autoDropCards = (cards, maxCards = 4) => {
-      const maxLength = cards.length;
-
-      if (maxLength <= maxCards) {
+      if (player.mp < skill.cost) {
         return;
       }
 
-      for (let i = 0; i < maxLength - maxCards; i++) {
-        const index = getRandomNumber(0, maxLength - 1);
-        cards.splice(index, 1);
+      doAction(player, monster, skill);
+
+      if (skill.type === "atk") {
+        atkDisabled.value = true;
+        setTimeout(() => {
+          atkDisabled.value = false;
+        }, 1500);
+      } else {
+        skillDisabled.value = true;
+        setTimeout(() => {
+          skillDisabled.value = false;
+        }, playerTimeout);
       }
-    };
-
-    const dropCards = (cards, count = 1) => {
-      if (cards.length === 0) {
-        return;
-      }
-
-      cards.splice(0, count);
-    };
-
-    const selectCard = (id) => {
-      if (end.value) {
-        return;
-      }
-
-      const from = isUserTurn.value ? username : enemyname;
-      const to = isUserTurn.value ? enemyname : username;
-      const _cards = isUserTurn.value ? userCards : enemyCards;
-
-      const card = _cards.find((card) => card.id === id);
-
-      if (card.type === "atk") {
-        damageByEnemy(isUserTurn.value ? enemyHealth : userHealth, card.value);
-      }
-      if (card.type === "heal") {
-        healSelf(isUserTurn.value ? userHealth : enemyHealth, card.value);
-      }
-      if (card.type === "draw") {
-        drawCards(
-          isUserTurn.value ? userCards : enemyCards,
-          card.value,
-          Date.now()
-        );
-      }
-      if (card.type === "drop") {
-        dropCards(isUserTurn.value ? enemyCards : userCards, card.value);
-      }
-
-      onUseCard(isUserTurn.value ? userCards : enemyCards, id);
-      addLog(from, to, card.type, card.name, card.value);
-    };
-
-    const useAllCards = (cards) => {
-      if (cards.length !== 0) {
-        for (const card of cards) {
-          selectCard(card.id);
-        }
-      }
-    };
-
-    const enemyAction = () => {
-      const drawTypeCards = enemyCards.filter((card) => {
-        return card.type === "draw";
-      });
-
-      if (drawTypeCards.length > 0) {
-        useAllCards(drawTypeCards);
-        setTimeout(enemyAction, 50);
-        return;
-      }
-
-      const dropCards = enemyCards.filter((card) => {
-        return card.type === "drop";
-      });
-      const healCards = enemyCards.filter((card) => {
-        return card.type === "heal";
-      });
-      const atkCards = enemyCards.filter((card) => card.type === "atk");
-
-      if (enemyHealth.value < maxHealth * 0.8 && healCards.length !== 0) {
-        for (const card of healCards) {
-          if (enemyHealth.value < maxHealth * 0.9) {
-            selectCard(card.id);
-          }
-        }
-      }
-
-      if (dropCards.length !== 0) {
-        for (const card of dropCards) {
-          if (userCards.length === 0) {
-            break;
-          } else {
-            selectCard(card.id);
-          }
-        }
-      }
-
-      useAllCards(atkCards);
-      enemyEffect();
-      setTimeout(handleTurnEnd, 50);
-    };
+    }
 
     return {
-      userHealth,
-      username,
-      enemyHealth,
-      enemyname,
-      cards,
-      userCards,
-      enemyCards,
-      handleTurnEnd,
-      selectCard,
-      turn,
-      isUserTurn,
+      player,
+      monster,
+      playerSkills,
+      handleUseSkill,
+      skillDisabled,
+      atkDisabled,
     };
   },
 };
